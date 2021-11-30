@@ -39,6 +39,7 @@
 #ifndef TEB_CONFIG_H_
 #define TEB_CONFIG_H_
 
+#include <nav2_core/exceptions.hpp>
 #include <nav2_util/lifecycle_node.hpp>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
@@ -59,7 +60,7 @@ class TebConfig
 {
 public:
   using UniquePtr = std::unique_ptr<TebConfig>;
-  
+
   std::string odom_topic; //!< Topic name of the odometry message, provided by the robot driver or simulator
   std::string map_frame; //!< Global planning frame
   std::string node_name; //!< node name used for parameter event callback
@@ -156,6 +157,8 @@ public:
     double weight_acc_lim_x; //!< Optimization weight for satisfying the maximum allowed translational acceleration
     double weight_acc_lim_y; //!< Optimization weight for satisfying the maximum allowed strafing acceleration (in use only for holonomic robots)
     double weight_acc_lim_theta; //!< Optimization weight for satisfying the maximum allowed angular acceleration
+    double weight_minimize_acc_x; //!< Optimization weight for minimizing the translational acceleration
+    double weight_minimize_acc_theta; //!< Optimization weight for minimizing the angular acceleration
     double weight_kinematics_nh; //!< Optimization weight for satisfying the non-holonomic kinematics
     double weight_kinematics_forward_drive; //!< Optimization weight for forcing the robot to choose only forward directions (positive transl. velocities, only diffdrive robot)
     double weight_kinematics_turning_radius; //!< Optimization weight for enforcing a minimum turning radius (carlike robots)
@@ -171,6 +174,7 @@ public:
 
     double weight_adapt_factor; //!< Some special weights (currently 'weight_obstacle') are repeatedly scaled by this factor in each outer TEB iteration (weight_new = weight_old*factor); Increasing weights iteratively instead of setting a huge value a-priori leads to better numerical conditions of the underlying optimization problem.
     double obstacle_cost_exponent; //!< Exponent for nonlinear obstacle cost (cost = linear_cost * obstacle_cost_exponent). Set to 1 to disable nonlinear cost (default)
+    int minimize_acc_exponent; //!< Exponent for nonlinear minimize acc (cost = linear_cost ** minimize_acc_exponent). Set to 1 to disable nonlinear cost (default)
   } optim; //!< Optimization related parameters
 
 
@@ -263,7 +267,7 @@ public:
     trajectory.publish_feedback = false;
     trajectory.min_resolution_collision_check_angular = M_PI;
     trajectory.control_look_ahead_poses = 1;
-    
+
     // Robot
 
     robot.max_vel_x = 0.4;
@@ -320,6 +324,8 @@ public:
     optim.weight_acc_lim_x = 1;
     optim.weight_acc_lim_y = 1;
     optim.weight_acc_lim_theta = 1;
+    optim.weight_minimize_acc_x = 0;
+    optim.weight_minimize_acc_theta = 0;
     optim.weight_kinematics_nh = 1000;
     optim.weight_kinematics_forward_drive = 1;
     optim.weight_kinematics_turning_radius = 1;
@@ -379,7 +385,7 @@ public:
     recovery.divergence_detection_enable = false;
     recovery.divergence_detection_max_chi_squared = 10;
   }
-  
+
   void declareParameters(const nav2_util::LifecycleNode::SharedPtr, const std::string name);
 
   /**
@@ -387,14 +393,14 @@ public:
    * @param nh const reference to the local rclcpp::Node::SharedPtr
    */
   void loadRosParamFromNodeHandle(const nav2_util::LifecycleNode::SharedPtr nh, const std::string name);
-  
+
   /**
    * @brief Paremeter event callback
    * @param event The ParameterEvent
    */
   void on_parameter_event_callback(
       const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
-  
+
   /**
    * @brief Check parameters and print warnings in case of discrepancies
    *
@@ -402,13 +408,43 @@ public:
    * about some improper uses.
    */
   void checkParameters() const;
-  
+
   /**
    * @brief Check if some deprecated parameters are found and print warnings
    * @param nh const reference to the local rclcpp::Node::SharedPtr
    */
   void checkDeprecated(const nav2_util::LifecycleNode::SharedPtr nh, const std::string name) const;
-  
+
+  /**
+   * @brief Compute cost ** exponent
+   */
+  double power(double cost, int exponent) const
+  {
+    double ret;
+    switch (exponent)
+    {
+    case 1:
+      return cost;
+    case 2:
+      return cost * cost;
+    case 3:
+      return cost * cost * cost;
+    case 4:
+      ret = cost * cost;
+      return ret * ret;
+    default:
+      throw nav2_core::PlannerException("Invalid exponent");
+    }
+  }
+
+  /**
+   * @brief Compute cost ** minimize_acc_exponent
+   */
+  double powerAcceleration(double cost) const
+  {
+    return power(cost, optim.minimize_acc_exponent);
+  }
+
   /**
    * @brief Return the internal config mutex
    */

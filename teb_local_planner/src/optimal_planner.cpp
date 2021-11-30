@@ -796,10 +796,12 @@ void TebOptimalPlanner::AddEdgesAcceleration()
     
   if (cfg_->robot.max_vel_y == 0 || cfg_->robot.acc_lim_y == 0) // non-holonomic robot
   {
-    Eigen::Matrix<double,2,2> information;
+    Eigen::Matrix<double,4,4> information;
     information.fill(0);
     information(0,0) = cfg_->optim.weight_acc_lim_x;
     information(1,1) = cfg_->optim.weight_acc_lim_theta;
+    information(2,2) = cfg_->optim.weight_minimize_acc_x;
+    information(3,3) = cfg_->optim.weight_minimize_acc_theta;
     
     // check if an initial velocity should be taken into accound
     if (vel_start_.first)

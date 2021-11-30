@@ -115,6 +115,8 @@ void TebConfig::declareParameters(const nav2_util::LifecycleNode::SharedPtr nh, 
   declare_parameter_if_not_declared(nh, name + "." + "weight_acc_lim_x", rclcpp::ParameterValue(optim.weight_acc_lim_x));
   declare_parameter_if_not_declared(nh, name + "." + "weight_acc_lim_y", rclcpp::ParameterValue(optim.weight_acc_lim_y));
   declare_parameter_if_not_declared(nh, name + "." + "weight_acc_lim_theta", rclcpp::ParameterValue(optim.weight_acc_lim_theta));
+  declare_parameter_if_not_declared(nh, name + "." + "weight_minimize_acc_x", rclcpp::ParameterValue(optim.weight_minimize_acc_x));
+  declare_parameter_if_not_declared(nh, name + "." + "weight_minimize_acc_theta", rclcpp::ParameterValue(optim.weight_minimize_acc_theta));
   declare_parameter_if_not_declared(nh, name + "." + "weight_kinematics_nh", rclcpp::ParameterValue(optim.weight_kinematics_nh));
   declare_parameter_if_not_declared(nh, name + "." + "weight_kinematics_forward_drive", rclcpp::ParameterValue(optim.weight_kinematics_forward_drive));
   declare_parameter_if_not_declared(nh, name + "." + "weight_kinematics_turning_radius", rclcpp::ParameterValue(optim.weight_kinematics_turning_radius));
@@ -128,6 +130,7 @@ void TebConfig::declareParameters(const nav2_util::LifecycleNode::SharedPtr nh, 
   declare_parameter_if_not_declared(nh, name + "." + "weight_prefer_rotdir", rclcpp::ParameterValue(optim.weight_prefer_rotdir));
   declare_parameter_if_not_declared(nh, name + "." + "weight_adapt_factor", rclcpp::ParameterValue(optim.weight_adapt_factor));
   declare_parameter_if_not_declared(nh, name + "." + "obstacle_cost_exponent", rclcpp::ParameterValue(optim.obstacle_cost_exponent));
+  declare_parameter_if_not_declared(nh, name + "." + "minimize_acc_exponent", rclcpp::ParameterValue(optim.minimize_acc_exponent));
   declare_parameter_if_not_declared(nh, name + "." + "weight_velocity_obstacle_ratio", rclcpp::ParameterValue(optim.weight_velocity_obstacle_ratio));
 
   // Homotopy Class Planner
@@ -240,6 +243,8 @@ void TebConfig::loadRosParamFromNodeHandle(const nav2_util::LifecycleNode::Share
   nh->get_parameter_or(name + "." + "weight_acc_lim_x", optim.weight_acc_lim_x, optim.weight_acc_lim_x);
   nh->get_parameter_or(name + "." + "weight_acc_lim_y", optim.weight_acc_lim_y, optim.weight_acc_lim_y);
   nh->get_parameter_or(name + "." + "weight_acc_lim_theta", optim.weight_acc_lim_theta, optim.weight_acc_lim_theta);
+  nh->get_parameter_or(name + "." + "weight_minimize_acc_x", optim.weight_minimize_acc_x, optim.weight_minimize_acc_x);
+  nh->get_parameter_or(name + "." + "weight_minimize_acc_theta", optim.weight_minimize_acc_theta, optim.weight_minimize_acc_theta);
   nh->get_parameter_or(name + "." + "weight_kinematics_nh", optim.weight_kinematics_nh, optim.weight_kinematics_nh);
   nh->get_parameter_or(name + "." + "weight_kinematics_forward_drive", optim.weight_kinematics_forward_drive, optim.weight_kinematics_forward_drive);
   nh->get_parameter_or(name + "." + "weight_kinematics_turning_radius", optim.weight_kinematics_turning_radius, optim.weight_kinematics_turning_radius);
@@ -253,6 +258,7 @@ void TebConfig::loadRosParamFromNodeHandle(const nav2_util::LifecycleNode::Share
   nh->get_parameter_or(name + "." + "weight_prefer_rotdir", optim.weight_prefer_rotdir, optim.weight_prefer_rotdir);
   nh->get_parameter_or(name + "." + "weight_adapt_factor", optim.weight_adapt_factor, optim.weight_adapt_factor);
   nh->get_parameter_or(name + "." + "obstacle_cost_exponent", optim.obstacle_cost_exponent, optim.obstacle_cost_exponent);
+  nh->get_parameter_or(name + "." + "minimize_acc_exponent", optim.minimize_acc_exponent, optim.minimize_acc_exponent);
   nh->get_parameter_or(name + "." + "weight_velocity_obstacle_ratio", optim.weight_velocity_obstacle_ratio, optim.weight_velocity_obstacle_ratio);
   
   // Homotopy Class Planner
@@ -390,6 +396,10 @@ void TebConfig::on_parameter_event_callback(
         optim.weight_acc_lim_y = value.double_value;
       } else if (name == node_name + ".weight_acc_lim_theta") {
         optim.weight_acc_lim_theta = value.double_value;
+      } else if (name == node_name + ".weight_minimize_acc_x") {
+        optim.weight_minimize_acc_x = value.double_value;
+      } else if (name == node_name + ".weight_minimize_acc_theta") {
+        optim.weight_minimize_acc_theta = value.double_value;
       } else if (name == node_name + ".weight_kinematics_nh") {
         optim.weight_kinematics_nh = value.double_value;
       } else if (name == node_name + ".weight_kinematics_forward_drive") {
@@ -416,7 +426,10 @@ void TebConfig::on_parameter_event_callback(
         optim.weight_adapt_factor = value.double_value;
       } else if (name == node_name + ".obstacle_cost_exponent") {
         optim.obstacle_cost_exponent = value.double_value;
+      } else if (name == node_name + ".minimize_acc_exponent") {
+        optim.minimize_acc_exponent = value.integer_value;
       }
+
       // Homotopy Class Planner
       else if (name == node_name + ".selection_cost_hysteresis") {
         hcp.selection_cost_hysteresis = value.double_value;
