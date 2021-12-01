@@ -18,9 +18,16 @@ IF(UNIX)
 
   MESSAGE(STATUS "Searching for g2o ...")
   FIND_PATH(G2O_INCLUDE_DIR
-    NAMES core math_groups types
+    NAMES core types
     PATHS /usr/local /usr
-    PATH_SUFFIXES include/g2o include)
+    PATH_SUFFIXES include)
+
+  IF (NOT G2O_INCLUDE_DIR)
+    FIND_PATH(G2O_INCLUDE_DIR
+      NAMES g2o/core g2o/types
+      PATHS /usr/local /usr
+      PATH_SUFFIXES include)
+  ENDIF (NOT G2O_INCLUDE_DIR)
 
   IF (G2O_INCLUDE_DIR)
     MESSAGE(STATUS "Found g2o headers in: ${G2O_INCLUDE_DIR}")
