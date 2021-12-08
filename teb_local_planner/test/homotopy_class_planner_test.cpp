@@ -66,7 +66,7 @@ TEST(test, test) {
     rclcpp::Rate rate(10);
     while(rclcpp::ok()) {
         test.visualize();
-        rclcpp::spin_some(node);
+        rclcpp::spin_some(node->get_node_base_interface());
         rate.sleep();
     }
 
