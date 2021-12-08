@@ -5,7 +5,7 @@
 
 class HomotopyClassPlannerTest : public teb_local_planner::HomotopyClassPlanner {
     public:
-    void SetUp(rclcpp::Node::SharedPtr node) {
+    void SetUp(nav2_util::LifecycleNode::SharedPtr node) {
         teb_local_planner::RobotFootprintModelPtr robot_model;
         teb_local_planner::TebVisualizationPtr visualization;
         teb_local_planner::HomotopyClassPlannerPtr homotopy_class_planner;
@@ -38,7 +38,7 @@ class HomotopyClassPlannerTest : public teb_local_planner::HomotopyClassPlanner 
 
 TEST(test, test) {
     HomotopyClassPlannerTest test;
-    rclcpp::Node::SharedPtr node( new rclcpp::Node("test") );
+    nav2_util::LifecycleNode::SharedPtr node( new nav2_util::LifecycleNode("test") );
     test.SetUp(node);
 
     using namespace teb_local_planner;
