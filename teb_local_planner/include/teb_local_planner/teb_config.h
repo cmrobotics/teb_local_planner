@@ -341,6 +341,7 @@ public:
 
     optim.weight_adapt_factor = 2.0;
     optim.obstacle_cost_exponent = 1.0;
+    optim.minimize_acc_exponent = 1.0;
 
     // Homotopy Class Planner
 
