@@ -43,12 +43,16 @@ class HomotopyClassPlannerTest : public teb_local_planner::HomotopyClassPlanner 
 class VisualizationSubscriber : public rclcpp::Node {
     public:
     VisualizationSubscriber() : rclcpp::Node("visualization_subscriber") {
-      this->create_subscription<geometry_msgs::msg::PoseArray>("teb_poses", 1, std::bind(&VisualizationSubscriber::tebPosesCallback, this, std::placeholders::_1));
+      teb_poses_sub_ = this->create_subscription<geometry_msgs::msg::PoseArray>("teb_poses", 1, std::bind(&VisualizationSubscriber::tebPosesCallback, this, std::placeholders::_1));
     }
 
     geometry_msgs::msg::PoseArray teb_poses;
+    bool teb_poses_fetched;
     void tebPosesCallback(const geometry_msgs::msg::PoseArray::SharedPtr input_poses) {
       if (input_poses) teb_poses = *input_poses;
+      if (teb_poses.poses.size() > 0) {
+          teb_poses_fetched = true;
+      }
     }
 
     private:
@@ -59,14 +63,12 @@ bool isPoseEqual(geometry_msgs::msg::Pose poseA, geometry_msgs::msg::Pose poseB,
     double dx = abs(poseA.position.x - poseB.position.x);
     double dy = abs(poseA.position.y - poseB.position.y);
 
-    std::cout << "Pose = [" << poseA.position.x << "," << poseA.position.y << "]" << std::endl;
-
     if (sqrt(dx*dx+dy*dy) <= xy_goal_tolerance) return true;
 
     return false;
 }
 
-TEST(test, test) {
+TEST(HomotopyPlannerTest, goToGoal) {
     HomotopyClassPlannerTest test;
     rclcpp_lifecycle::LifecycleNode::SharedPtr node(new rclcpp_lifecycle::LifecycleNode("test"));
     std::shared_ptr<VisualizationSubscriber> visualize_sub_node = std::make_shared<VisualizationSubscriber>();
@@ -74,7 +76,7 @@ TEST(test, test) {
 
     using namespace teb_local_planner;
     PoseSE2 start(0, 0, 0);
-    PoseSE2 via(2, 2, 0);
+    PoseSE2 via(2, 0, 0);
     PoseSE2 goal(5, 5, 0);
     
     geometry_msgs::msg::Twist twist;
@@ -102,14 +104,17 @@ TEST(test, test) {
     rclcpp::executors::SingleThreadedExecutor exe;
     exe.add_node(node->get_node_base_interface());
     exe.add_node(visualize_sub_node);
+    bool goal_reached = false;
 
-    while(!isPoseEqual(visualize_sub_node->teb_poses.poses.back(), goal_pose.pose)) {
+    while(!goal_reached) {
         test.visualize();
         exe.spin_some();
-        rclcpp::sle
+        if (visualize_sub_node->teb_poses_fetched) {
+            goal_reached = isPoseEqual(visualize_sub_node->teb_poses.poses.back(), goal_pose.pose);
+        }
     }
 
-    bool goal_reached = isPoseEqual(visualize_sub_node->teb_poses.poses.back(), goal_pose.pose);
+    ASSERT_TRUE(visualize_sub_node->teb_poses_fetched);
     ASSERT_TRUE(goal_reached);
 
     exe.cancel();        
